@@ -28,6 +28,9 @@ const connection = await mysql.createConnection({
 //   .then((response) => response.json())
 //   .then((data) => console.log(data))
 //   .catch((error) => console.error("Error:", error));
+app.get("/", (req, res) => {
+  res.send("<h1>MY API!!!!!!</h1>");
+});
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
