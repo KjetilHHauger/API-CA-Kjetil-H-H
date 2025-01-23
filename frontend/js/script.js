@@ -1,4 +1,4 @@
-const api = "http://localhost:3000";
+const api = "https://api-ca-kjetil-h-h.onrender.com";
 
 document
   .getElementById("loginForm")
