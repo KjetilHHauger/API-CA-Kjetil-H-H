@@ -15,21 +15,22 @@ const connection = await mysql.createConnection({
   port: process.env.DB_PORT || 3306,
 });
 
-// fetch("http://localhost:3000/login", {
-//   method: "POST",
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-//   body: JSON.stringify({
 //     username: "user1",
 //     password: "hashedpassword1",
-//   }),
-// })
-//   .then((response) => response.json())
-//   .then((data) => console.log(data))
-//   .catch((error) => console.error("Error:", error));
-app.get("/", (req, res) => {
-  res.send("<h1>MY API!!!!!!</h1>");
+
+app.get("/brands", async (req, res) => {
+  try {
+    const [rows] = await connection.execute("SELECT * FROM brands");
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No brands found." });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching brands." });
+  }
 });
 
 app.post("/login", async (req, res) => {
@@ -67,5 +68,7 @@ app.post("/login", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(
+    `Server running on https://api-ca-kjetil-h-h.onrender.com:${PORT}`
+  );
 });
