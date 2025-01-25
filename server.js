@@ -49,50 +49,29 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Single user brands
-app.get("/users/:user_id/brands", async (req, res) => {
+// Update profile image
+app.put("/users/:user_id/profile-image", async (req, res) => {
   const userId = Number(req.params.user_id);
+  const { profileImage } = req.body;
 
-  if (!userId) {
-    return res.status(400).json({ error: "Invalid user ID." });
+  if (!userId || !profileImage) {
+    return res.status(400).json({ error: "User ID and profile image URL are required." });
   }
 
   try {
-    const [rows] = await pool.execute("SELECT * FROM brands WHERE user_id = ?", [userId]);
+    await pool.execute("UPDATE users SET profile_image = ? WHERE user_id = ?", [
+      profileImage,
+      userId,
+    ]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No brands found for this user." });
-    }
-
-    res.json(rows);
+    res.status(200).json({ message: "Profile image updated successfully!" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "An error occurred while fetching brands." });
+    res.status(500).json({ error: "Failed to update profile image." });
   }
 });
 
-// Brands collections
-app.get("/brands/:brand_id/collections", async (req, res) => {
-  const brandId = Number(req.params.brand_id);
-
-  if (!brandId) {
-    return res.status(400).json({ error: "Invalid brand ID." });
-  }
-
-  try {
-    const [rows] = await pool.execute("SELECT * FROM collections WHERE brand_id = ?", [brandId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No collections found for this brand." });
-    }
-
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "An error occurred while fetching collections." });
-  }
-});
-
+// Single user brands
 app.post("/users/:user_id/brands", async (req, res) => {
   const userId = Number(req.params.user_id);
   const { brandTitle, brandImage } = req.body;
@@ -114,29 +93,47 @@ app.post("/users/:user_id/brands", async (req, res) => {
   }
 });
 
+app.get("/users/:user_id/brands", async (req, res) => {
+  const userId = Number(req.params.user_id);
 
-// Collection filaments
-app.post("/collections/:collection_id/filaments", async (req, res) => {
-  const { collection_id } = req.params;
-  const { type, image_url, purchase_link, description } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: "Invalid user ID." });
+  }
 
-  if (!type) {
-    return res.status(400).json({ error: "Filament type is required." });
+  try {
+    const [rows] = await pool.execute("SELECT * FROM brands WHERE user_id = ?", [userId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No brands found for this user." });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching brands." });
+  }
+});
+
+app.post("/filaments", async (req, res) => {
+  const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
+
+  if (!collectionId || !type) {
+    return res.status(400).json({ error: "Collection ID and type are required." });
   }
 
   try {
     await pool.execute(
-      "INSERT INTO filaments (collection_id, type, image_url, purchase_link, description) VALUES (?, ?, ?, ?, ?)",
-      [collection_id, type, image_url, purchase_link, description]
+      `INSERT INTO filaments (collection_id, type, color, weight, image_url, purchase_link, description) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [collectionId, type, color, weight, imageUrl, purchaseLink, description]
     );
 
     res.status(201).json({ message: "Filament added successfully!" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "An error occurred while adding the filament." });
+    res.status(500).json({ error: "Failed to add filament." });
   }
 });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
