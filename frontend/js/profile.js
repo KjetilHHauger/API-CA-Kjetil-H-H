@@ -10,6 +10,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const userId = user.user_id;
   document.getElementById("username").textContent = user.username;
 
+  // Logout 
+  document.getElementById("logoutButton").addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "./login.html";
+  });
+
+  // Fetch and display brands
   try {
     const response = await fetch(`${api}/users/${userId}/brands`);
     const brands = await response.json();
@@ -30,6 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error fetching brands:", error);
   }
 
+  // Show collections
   async function showCollections(brandId) {
     try {
       const response = await fetch(`${api}/brands/${brandId}/collections`);
@@ -40,96 +48,94 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       collections.forEach((collection) => {
         const card = document.createElement("div");
-        card.className = "brand-card";
+        card.className = "collection-card";
         card.innerHTML = `<h3>${collection.collection_name}</h3>`;
-        card.addEventListener("click", () => showFilaments(collection.collection_id));
         brandCards.appendChild(card);
       });
+
+      const addCollectionButton = document.createElement("button");
+      addCollectionButton.textContent = "Add Collection";
+      addCollectionButton.addEventListener("click", () => {
+        togglePopup("createCollectionPopup");
+        document
+          .getElementById("createCollectionForm")
+          .setAttribute("data-brand-id", brandId); 
+      });
+      brandCards.appendChild(addCollectionButton);
     } catch (error) {
       console.error("Error fetching collections:", error);
     }
-  }
-
-  async function showFilaments(collectionId) {
-    try {
-      const response = await fetch(`${api}/collections/${collectionId}/filaments`);
-      const filaments = await response.json();
-
-      const brandCards = document.getElementById("brandCards");
-      brandCards.innerHTML = ""; 
-
-      filaments.forEach((filament) => {
-        const card = document.createElement("div");
-        card.className = "brand-card";
-        card.innerHTML = `
-          <h3>${filament.type}</h3>
-          <p>${filament.color}</p>
-        `;
-
-        card.addEventListener("click", () => showFilamentDetails(filament));
-        brandCards.appendChild(card);
-      });
-
-      const addButton = document.createElement("button");
-      addButton.textContent = "Add Filament";
-      addButton.addEventListener("click", () => togglePopup("addFilamentPopup"));
-      brandCards.appendChild(addButton);
-    } catch (error) {
-      console.error("Error fetching filaments:", error);
-    }
-  }
-
-  function showFilamentDetails(filament) {
-    document.getElementById("filamentTitle").textContent = filament.type;
-    document.getElementById("filamentImage").src = filament.image_url || "";
-    document.getElementById("filamentDescription").textContent = `Description: ${filament.description}`;
-    document.getElementById("filamentWeight").textContent = `Weight: ${filament.weight} kg`;
-    document.getElementById("filamentType").textContent = `Type: ${filament.type}`;
-    document.getElementById("filamentColor").textContent = `Color: ${filament.color}`;
-    document.getElementById("filamentLink").href = filament.purchase_link || "#";
-
-    togglePopup("filamentDetailsPopup");
   }
 
   function togglePopup(id) {
     document.getElementById(id).classList.toggle("hidden");
   }
 
-  document.getElementById("closeFilamentDetailsPopup").addEventListener("click", () => {
-    togglePopup("filamentDetailsPopup");
+  document.getElementById("closeCreateBrandPopup").addEventListener("click", () => {
+    togglePopup("createBrandPopup");
   });
 
-  document.getElementById("closeAddFilamentPopup").addEventListener("click", () => {
-    togglePopup("addFilamentPopup");
+  document.getElementById("closeCreateCollectionPopup").addEventListener("click", () => {
+    togglePopup("createCollectionPopup");
   });
 
-  document.getElementById("addFilamentForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
+  // Create brand
+  document.getElementById("createBrandButton").addEventListener("click", () => {
+    togglePopup("createBrandPopup");
+  });
 
-    const type = document.getElementById("filamentType").value;
-    const color = document.getElementById("filamentColor").value;
-    const weight = document.getElementById("filamentWeight").value;
-    const imageUrl = document.getElementById("filamentImage").value;
-    const purchaseLink = document.getElementById("filamentLink").value;
-    const description = document.getElementById("filamentDescription").value;
+  document
+    .getElementById("createBrandForm")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const brandName = document.getElementById("brandName").value;
+      const brandImage = document.getElementById("brandImage").value;
 
-    try {
-      const response = await fetch(`${api}/filaments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ type, color, weight, imageUrl, purchaseLink, description }),
-      });
+      try {
+        const response = await fetch(`${api}/users/${userId}/brands`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brandTitle: brandName, brandImage }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to add filament.");
+        if (!response.ok) {
+          throw new Error("Failed to create brand.");
+        }
+
+        alert("Brand created successfully!");
+        togglePopup("createBrandPopup");
+        window.location.reload(); 
+      } catch (error) {
+        console.error("Error creating brand:", error);
       }
+    });
 
-      alert("Filament added successfully!");
-      togglePopup("addFilamentPopup");
-    } catch (error) {
-      console.error("Error adding filament:", error);
-    }
-  });
+  // Create collection
+  document
+    .getElementById("createCollectionForm")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const collectionName = document.getElementById("collectionName").value;
+      const brandId = document
+        .getElementById("createCollectionForm")
+        .getAttribute("data-brand-id");
+
+      try {
+        const response = await fetch(`${api}/brands/${brandId}/collections`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collectionName }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create collection.");
+        }
+
+        alert("Collection created successfully!");
+        togglePopup("createCollectionPopup");
+        showCollections(brandId);
+      } catch (error) {
+        console.error("Error creating collection:", error);
+      }
+    });
 });
