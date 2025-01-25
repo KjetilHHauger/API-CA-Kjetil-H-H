@@ -216,19 +216,24 @@ app.get("/collections/:collection_id/filaments", async (req, res) => {
 app.post("/filaments", async (req, res) => {
   const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
 
+  if (!collectionId || !type) {
+    return res.status(400).json({ error: "Collection ID and Type are required." });
+  }
+
   try {
     await pool.execute(
       `INSERT INTO filaments (collection_id, type, color, weight, image_url, purchase_link, description) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [collectionId, type, color, weight, imageUrl, purchaseLink, description]
+      [collectionId, type, color || null, weight || null, imageUrl || null, purchaseLink || null, description || null]
     );
 
     res.status(201).json({ message: "Filament created successfully!" });
-  } catch (err) {
-    console.error("Error creating filament:", err);
+  } catch (error) {
+    console.error("Error creating filament:", error);
     res.status(500).json({ error: "Failed to create filament." });
   }
 });
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
