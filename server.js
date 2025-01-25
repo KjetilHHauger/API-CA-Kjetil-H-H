@@ -124,7 +124,7 @@ app.post("/login", async (req, res) => {
       user_id: user.user_id,
       username: user.username,
       email: user.email,
-      avatar_image: user.avatar_image || null,
+      avatar_image: user.profile_image || null,
     });
   } catch (err) {
     console.error("Error during login:", err);
