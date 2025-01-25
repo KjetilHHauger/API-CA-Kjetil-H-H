@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile</title>
+    <script src="./js/profile.js" type="module"></script>
+  </head>
+  <body>
+    <h1>Profile</h1>
+    <div id="profileDetails"></div>
+
+    <h2>Add Brand</h2>
+    <form id="addBrandForm">
+      <label for="brandTitle">Brand Title:</label>
+      <input type="text" id="brandTitle" name="brandTitle" required />
+      <br />
+      <label for="brandImage">Brand Logo URL:</label>
+      <input type="url" id="brandImage" name="brandImage" />
+      <br />
+      <button type="submit">Add Brand</button>
+    </form>
+    <div id="brands"></div>
+
+    <h2>Add Filament</h2>
+    <select id="collectionSelect"></select>
+    <form id="addFilamentForm">
+      <label for="filamentType">Filament Type:</label>
+      <input type="text" id="filamentType" name="filamentType" required />
+      <br />
+      <label for="filamentImage">Filament Image URL:</label>
+      <input type="url" id="filamentImage" name="filamentImage" />
+      <br />
+      <label for="filamentLink">Filament Purchase Link:</label>
+      <input type="url" id="filamentLink" name="filamentLink" />
+      <br />
+      <label for="filamentDescription">Filament Description:</label>
+      <textarea id="filamentDescription" name="filamentDescription"></textarea>
+      <br />
+      <button type="submit">Add Filament</button>
+    </form>
+    <div id="filaments"></div>
+  </body>
+</html>
