@@ -38,7 +38,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
-// Update user avatar
+// Update avatar
 app.put("/users/:user_id/avatar", async (req, res) => {
   const userId = Number(req.params.user_id);
   const { avatarUrl } = req.body;
@@ -48,14 +48,14 @@ app.put("/users/:user_id/avatar", async (req, res) => {
   }
 
   try {
-    await pool.execute("UPDATE users SET avatar_image = ? WHERE user_id = ?", [avatarUrl, userId]);
-
-    res.status(200).json({ message: "User avatar updated successfully!" });
+    await pool.execute("UPDATE users SET profile_image = ? WHERE user_id = ?", [avatarUrl, userId]);
+    res.status(200).json({ message: "Profile image updated successfully!" });
   } catch (err) {
-    console.error("Error updating avatar:", err);
-    res.status(500).json({ error: "Failed to update avatar." });
+    console.error("Error updating profile image:", err);
+    res.status(500).json({ error: "Failed to update profile image." });
   }
 });
+
 
 // Delete brand
 app.delete("/brands/:brand_id", async (req, res) => {
