@@ -1,6 +1,6 @@
 const api = "https://api-ca-kjetil-h-h.onrender.com";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const user = JSON.parse(localStorage.getItem("user"));
   if (!user) {
     window.location.href = "./login.html";
@@ -8,101 +8,104 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const userId = user.user_id;
+  document.getElementById("username").textContent = user.username;
 
-  const usernameElement = document.getElementById("username");
-  if (!usernameElement) {
-    console.error("Element with id 'username' not found in the DOM.");
-    return;
+  try {
+    const response = await fetch(`${api}/users/${userId}/brands`);
+    const brands = await response.json();
+
+    const brandCards = document.getElementById("brandCards");
+    brands.forEach((brand) => {
+      const card = document.createElement("div");
+      card.className = "brand-card";
+      card.innerHTML = `
+        <img src="${brand.image || "https://via.placeholder.com/150"}" alt="${brand.brand_name}">
+        <h3>${brand.brand_name}</h3>
+      `;
+
+      card.addEventListener("click", () => showCollections(brand.brand_id));
+      brandCards.appendChild(card);
+    });
+  } catch (error) {
+    console.error("Error fetching brands:", error);
   }
 
-  usernameElement.textContent = user.username;
-
-  document.getElementById("saveProfileImage").addEventListener("click", async () => {
-    const profileImage = document.getElementById("profileImage").value;
-
+  async function showCollections(brandId) {
     try {
-      const response = await fetch(`${api}/users/${userId}/profile-image`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ profileImage }),
+      const response = await fetch(`${api}/brands/${brandId}/collections`);
+      const collections = await response.json();
+
+      const brandCards = document.getElementById("brandCards");
+      brandCards.innerHTML = ""; // Clear current cards
+
+      collections.forEach((collection) => {
+        const card = document.createElement("div");
+        card.className = "brand-card";
+        card.innerHTML = `<h3>${collection.collection_name}</h3>`;
+        card.addEventListener("click", () => showFilaments(collection.collection_id));
+        brandCards.appendChild(card);
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile image.");
-      }
-
-      const data = await response.json();
-      alert(data.message);
     } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred while updating the profile image.");
+      console.error("Error fetching collections:", error);
     }
-  });
+  }
 
-  document.getElementById("addBrandForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const brandTitle = document.getElementById("brandTitle").value;
-    const brandImage = document.getElementById("brandImage").value;
-
+  async function showFilaments(collectionId) {
     try {
-      const response = await fetch(`${api}/users/${userId}/brands`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ brandTitle, brandImage }),
-      });
+      const response = await fetch(`${api}/collections/${collectionId}/filaments`);
+      const filaments = await response.json();
 
-      if (!response.ok) {
-        throw new Error("Failed to add brand.");
-      }
+      const brandCards = document.getElementById("brandCards");
+      brandCards.innerHTML = ""; // Clear current cards
 
-      const data = await response.json();
-      alert(data.message);
-      fetchBrands();
-    } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred while adding the brand.");
-    }
-  });
-
-  async function fetchBrands() {
-    try {
-      const response = await fetch(`${api}/users/${userId}/brands`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch brands.");
-      }
-
-      const brands = await response.json();
-      const brandsDiv = document.getElementById("brands");
-      brandsDiv.innerHTML = "<h3>Your Brands:</h3>";
-
-      brands.forEach((brand) => {
-        brandsDiv.innerHTML += `
-          <div>
-            <p>Title: ${brand.brand_name}</p>
-            ${
-              brand.image
-                ? `<img src="${brand.image}" alt="${brand.brand_name}" width="100" />`
-                : ""
-            }
-          </div>
+      filaments.forEach((filament) => {
+        const card = document.createElement("div");
+        card.className = "brand-card";
+        card.innerHTML = `
+          <h3>${filament.type}</h3>
+          <p>${filament.color}</p>
         `;
+
+        card.addEventListener("click", () => showFilamentDetails(filament));
+        brandCards.appendChild(card);
       });
+
+      const addButton = document.createElement("button");
+      addButton.textContent = "Add Filament";
+      addButton.addEventListener("click", () => togglePopup("addFilamentPopup"));
+      brandCards.appendChild(addButton);
     } catch (error) {
-      console.error("Error fetching brands:", error);
-      alert("An error occurred while fetching brands.");
+      console.error("Error fetching filaments:", error);
     }
   }
 
-  fetchBrands();
+  function showFilamentDetails(filament) {
+    document.getElementById("filamentTitle").textContent = filament.type;
+    document.getElementById("filamentImage").src = filament.image_url || "";
+    document.getElementById("filamentDescription").textContent = `Description: ${filament.description}`;
+    document.getElementById("filamentWeight").textContent = `Weight: ${filament.weight} kg`;
+    document.getElementById("filamentType").textContent = `Type: ${filament.type}`;
+    document.getElementById("filamentColor").textContent = `Color: ${filament.color}`;
+    document.getElementById("filamentLink").href = filament.purchase_link || "#";
+
+    togglePopup("filamentDetailsPopup");
+  }
+
+  function togglePopup(id) {
+    document.getElementById(id).classList.toggle("hidden");
+  }
+
+  document.getElementById("closeFilamentDetailsPopup").addEventListener("click", () => {
+    togglePopup("filamentDetailsPopup");
+  });
+
+  document.getElementById("closeAddFilamentPopup").addEventListener("click", () => {
+    togglePopup("addFilamentPopup");
+  });
 
   document.getElementById("addFilamentForm").addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const collectionId = document.getElementById("collectionSelect").value;
     const type = document.getElementById("filamentType").value;
     const color = document.getElementById("filamentColor").value;
     const weight = document.getElementById("filamentWeight").value;
@@ -116,56 +119,17 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ collectionId, type, color, weight, imageUrl, purchaseLink, description }),
+        body: JSON.stringify({ type, color, weight, imageUrl, purchaseLink, description }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to add filament.");
       }
 
-      const data = await response.json();
-      alert(data.message);
-      fetchFilaments(collectionId);
+      alert("Filament added successfully!");
+      togglePopup("addFilamentPopup");
     } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred while adding the filament.");
+      console.error("Error adding filament:", error);
     }
   });
-
-  async function fetchFilaments(collectionId) {
-    try {
-      const response = await fetch(`${api}/collections/${collectionId}/filaments`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch filaments.");
-      }
-
-      const filaments = await response.json();
-      const filamentsDiv = document.getElementById("filaments");
-      filamentsDiv.innerHTML = "<h3>Your Filaments:</h3>";
-
-      filaments.forEach((filament) => {
-        filamentsDiv.innerHTML += `
-          <div>
-            <p>Type: ${filament.type}</p>
-            <p>Color: ${filament.color || "N/A"}</p>
-            <p>Weight: ${filament.weight || "N/A"} kg</p>
-            ${
-              filament.image_url
-                ? `<img src="${filament.image_url}" alt="${filament.type}" width="100" />`
-                : ""
-            }
-            ${
-              filament.purchase_link
-                ? `<p><a href="${filament.purchase_link}" target="_blank">Buy Here</a></p>`
-                : "<p>No purchase link provided</p>"
-            }
-            <p>${filament.description || "No description provided"}</p>
-          </div>
-        `;
-      });
-    } catch (error) {
-      console.error("Error fetching filaments:", error);
-      alert("An error occurred while fetching filaments.");
-    }
-  }
 });

@@ -4,52 +4,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile</title>
+  <link rel="stylesheet" href="./css/style.css">
   <script src="./js/profile.js" type="module" defer></script>
 </head>
 <body>
-  <h1>Profile</h1>
-  <p>Username: <span id="username"></span></p>
-  <label for="profileImage">Profile Image URL:</label>
-  <input type="url" id="profileImage" />
-  <button id="saveProfileImage">Save Profile Image</button>
+  <header class="profile-header">
+    <img id="profileImage" src="" alt="Profile Image" class="profile-image">
+    <h1 id="username">Username</h1>
+  </header>
 
-  <h2>Add Brand</h2>
-  <form id="addBrandForm">
-    <label for="brandTitle">Brand Title:</label>
-    <input type="text" id="brandTitle" name="brandTitle" required />
-    <br />
-    <label for="brandImage">Brand Logo URL:</label>
-    <input type="url" id="brandImage" name="brandImage" />
-    <br />
-    <button type="submit">Add Brand</button>
-  </form>
-  <div id="brands"></div>
+  <section id="brands" class="brands-section">
+    <h2>Your Brands</h2>
+    <div id="brandCards" class="brand-cards">
+    </div>
+  </section>
 
-  <h2>Add Filament</h2>
-  <form id="addFilamentForm">
-    <label for="collectionSelect">Collection:</label>
-    <select id="collectionSelect"></select>
-    <br />
-    <label for="filamentType">Type:</label>
-    <input type="text" id="filamentType" name="filamentType" required />
-    <br />
-    <label for="filamentColor">Color:</label>
-    <input type="text" id="filamentColor" name="filamentColor" />
-    <br />
-    <label for="filamentWeight">Weight (kg):</label>
-    <input type="number" step="0.01" id="filamentWeight" name="filamentWeight" />
-    <br />
-    <label for="filamentImage">Image URL:</label>
-    <input type="url" id="filamentImage" name="filamentImage" />
-    <br />
-    <label for="filamentLink">Purchase Link:</label>
-    <input type="url" id="filamentLink" name="filamentLink" />
-    <br />
-    <label for="filamentDescription">Description:</label>
-    <textarea id="filamentDescription"></textarea>
-    <br />
-    <button type="submit">Add Filament</button>
-  </form>
-  <div id="filaments"></div>
+  <div id="filamentDetailsPopup" class="popup hidden">
+    <div class="popup-content">
+      <button class="close-popup" id="closeFilamentDetailsPopup">✖</button>
+      <h2 id="filamentTitle">Filament Title</h2>
+      <img id="filamentImage" src="" alt="Filament Image">
+      <p id="filamentDescription">Description: </p>
+      <p id="filamentWeight">Weight: </p>
+      <p id="filamentType">Type: </p>
+      <p id="filamentColor">Color: </p>
+      <a id="filamentLink" href="#" target="_blank">Purchase Link</a>
+    </div>
+  </div>
+
+  <div id="addFilamentPopup" class="popup hidden">
+    <div class="popup-content">
+      <button class="close-popup" id="closeAddFilamentPopup">✖</button>
+      <h2>Add Filament</h2>
+      <form id="addFilamentForm">
+        <label for="filamentType">Type:</label>
+        <input type="text" id="filamentType" required>
+
+        <label for="filamentColor">Color:</label>
+        <input type="text" id="filamentColor">
+
+        <label for="filamentWeight">Weight (kg):</label>
+        <input type="number" step="0.01" id="filamentWeight">
+
+        <label for="filamentImage">Image URL:</label>
+        <input type="url" id="filamentImage">
+
+        <label for="filamentLink">Purchase Link:</label>
+        <input type="url" id="filamentLink">
+
+        <label for="filamentDescription">Description:</label>
+        <textarea id="filamentDescription"></textarea>
+
+        <button type="submit">Add Filament</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
