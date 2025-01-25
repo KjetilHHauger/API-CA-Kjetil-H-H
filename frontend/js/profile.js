@@ -1,12 +1,21 @@
 const api = "https://api-ca-kjetil-h-h.onrender.com";
 
-const user = JSON.parse(localStorage.getItem("user"));
-if (!user) {
-  window.location.href = "./login.html";
-} else {
+document.addEventListener("DOMContentLoaded", () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user) {
+    window.location.href = "./login.html";
+    return;
+  }
+
   const userId = user.user_id;
 
-  document.getElementById("username").textContent = user.username;
+  const usernameElement = document.getElementById("username");
+  if (!usernameElement) {
+    console.error("Element with id 'username' not found in the DOM.");
+    return;
+  }
+
+  usernameElement.textContent = user.username;
 
   document.getElementById("saveProfileImage").addEventListener("click", async () => {
     const profileImage = document.getElementById("profileImage").value;
@@ -52,11 +61,43 @@ if (!user) {
 
       const data = await response.json();
       alert(data.message);
+      fetchBrands();
     } catch (error) {
       console.error("Error:", error);
       alert("An error occurred while adding the brand.");
     }
   });
+
+  async function fetchBrands() {
+    try {
+      const response = await fetch(`${api}/users/${userId}/brands`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch brands.");
+      }
+
+      const brands = await response.json();
+      const brandsDiv = document.getElementById("brands");
+      brandsDiv.innerHTML = "<h3>Your Brands:</h3>";
+
+      brands.forEach((brand) => {
+        brandsDiv.innerHTML += `
+          <div>
+            <p>Title: ${brand.brand_name}</p>
+            ${
+              brand.image
+                ? `<img src="${brand.image}" alt="${brand.brand_name}" width="100" />`
+                : ""
+            }
+          </div>
+        `;
+      });
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      alert("An error occurred while fetching brands.");
+    }
+  }
+
+  fetchBrands();
 
   document.getElementById("addFilamentForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -84,9 +125,47 @@ if (!user) {
 
       const data = await response.json();
       alert(data.message);
+      fetchFilaments(collectionId);
     } catch (error) {
       console.error("Error:", error);
       alert("An error occurred while adding the filament.");
     }
   });
-}
+
+  async function fetchFilaments(collectionId) {
+    try {
+      const response = await fetch(`${api}/collections/${collectionId}/filaments`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch filaments.");
+      }
+
+      const filaments = await response.json();
+      const filamentsDiv = document.getElementById("filaments");
+      filamentsDiv.innerHTML = "<h3>Your Filaments:</h3>";
+
+      filaments.forEach((filament) => {
+        filamentsDiv.innerHTML += `
+          <div>
+            <p>Type: ${filament.type}</p>
+            <p>Color: ${filament.color || "N/A"}</p>
+            <p>Weight: ${filament.weight || "N/A"} kg</p>
+            ${
+              filament.image_url
+                ? `<img src="${filament.image_url}" alt="${filament.type}" width="100" />`
+                : ""
+            }
+            ${
+              filament.purchase_link
+                ? `<p><a href="${filament.purchase_link}" target="_blank">Buy Here</a></p>`
+                : "<p>No purchase link provided</p>"
+            }
+            <p>${filament.description || "No description provided"}</p>
+          </div>
+        `;
+      });
+    } catch (error) {
+      console.error("Error fetching filaments:", error);
+      alert("An error occurred while fetching filaments.");
+    }
+  }
+});
