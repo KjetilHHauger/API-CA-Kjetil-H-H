@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Fetch all users
 app.get("/users", async (req, res) => {
   try {
     const [rows] = await pool.execute("SELECT * FROM users");
@@ -71,7 +72,7 @@ app.put("/users/:user_id/profile-image", async (req, res) => {
   }
 });
 
-// Single user brands
+// Add a brand for user
 app.post("/users/:user_id/brands", async (req, res) => {
   const userId = Number(req.params.user_id);
   const { brandTitle, brandImage } = req.body;
@@ -93,6 +94,7 @@ app.post("/users/:user_id/brands", async (req, res) => {
   }
 });
 
+// Fetch brands for user
 app.get("/users/:user_id/brands", async (req, res) => {
   const userId = Number(req.params.user_id);
 
@@ -114,6 +116,29 @@ app.get("/users/:user_id/brands", async (req, res) => {
   }
 });
 
+// Fetch collections for brand
+app.get("/brands/:brand_id/collections", async (req, res) => {
+  const brandId = Number(req.params.brand_id);
+
+  if (!brandId) {
+    return res.status(400).json({ error: "Invalid brand ID." });
+  }
+
+  try {
+    const [rows] = await pool.execute("SELECT * FROM collections WHERE brand_id = ?", [brandId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No collections found for this brand." });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching collections." });
+  }
+});
+
+// Add filament
 app.post("/filaments", async (req, res) => {
   const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
 
@@ -135,6 +160,7 @@ app.post("/filaments", async (req, res) => {
   }
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
