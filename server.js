@@ -7,6 +7,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const keepAlive = () => {
+  setInterval(async () => {
+    try {
+      await pool.execute("SELECT 1");
+      console.log("Database keep-alive query executed successfully.");
+    } catch (err) {
+      console.error("Error executing keep-alive query:", err);
+    }
+  }, 30000); 
+};
+
+
+keepAlive();
+
+
 // Fetch all users
 app.get("/users", async (req, res) => {
   try {
