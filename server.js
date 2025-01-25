@@ -1,20 +1,11 @@
 import express from "express";
 import cors from "cors";
-import mysql from "mysql2/promise";
 import pool from "./frontend/js/database.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-const connection = await mysql.createConnection({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "password",
-  database: process.env.DB_NAME || "learning_db",
-  port: process.env.DB_PORT || 3306,
-});
 
 app.get("/users", async (req, res) => {
   try {
@@ -31,13 +22,11 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .json({ error: "Username and password are required." });
+    return res.status(400).json({ error: "Username and password are required." });
   }
 
   try {
-    const [rows] = await connection.execute(
+    const [rows] = await pool.execute(
       "SELECT * FROM users WHERE username = ? AND password_hash = ?",
       [username, password]
     );
@@ -69,10 +58,7 @@ app.get("/users/:user_id/brands", async (req, res) => {
   }
 
   try {
-    const [rows] = await connection.execute(
-      "SELECT * FROM brands WHERE user_id = ?",
-      [userId]
-    );
+    const [rows] = await pool.execute("SELECT * FROM brands WHERE user_id = ?", [userId]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "No brands found for this user." });
@@ -85,7 +71,7 @@ app.get("/users/:user_id/brands", async (req, res) => {
   }
 });
 
-//  Brands collections
+// Brands collections
 app.get("/brands/:brand_id/collections", async (req, res) => {
   const brandId = Number(req.params.brand_id);
 
@@ -94,15 +80,10 @@ app.get("/brands/:brand_id/collections", async (req, res) => {
   }
 
   try {
-    const [rows] = await connection.execute(
-      "SELECT * FROM collections WHERE brand_id = ?",
-      [brandId]
-    );
+    const [rows] = await pool.execute("SELECT * FROM collections WHERE brand_id = ?", [brandId]);
 
     if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No collections found for this brand." });
+      return res.status(404).json({ message: "No collections found for this brand." });
     }
 
     res.json(rows);
@@ -111,6 +92,28 @@ app.get("/brands/:brand_id/collections", async (req, res) => {
     res.status(500).json({ error: "An error occurred while fetching collections." });
   }
 });
+
+app.post("/users/:user_id/brands", async (req, res) => {
+  const userId = Number(req.params.user_id);
+  const { brandTitle, brandImage } = req.body;
+
+  if (!userId || !brandTitle) {
+    return res.status(400).json({ error: "User ID and brand title are required." });
+  }
+
+  try {
+    await pool.execute(
+      "INSERT INTO brands (user_id, brand_name, image) VALUES (?, ?, ?)",
+      [userId, brandTitle, brandImage]
+    );
+
+    res.status(201).json({ message: "Brand added successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add brand." });
+  }
+});
+
 
 // Collection filaments
 app.post("/collections/:collection_id/filaments", async (req, res) => {
@@ -122,8 +125,8 @@ app.post("/collections/:collection_id/filaments", async (req, res) => {
   }
 
   try {
-    await connection.execute(
-      `INSERT INTO filaments (collection_id, type, image_url, purchase_link, description) VALUES (?, ?, ?, ?, ?)`,
+    await pool.execute(
+      "INSERT INTO filaments (collection_id, type, image_url, purchase_link, description) VALUES (?, ?, ?, ?, ?)",
       [collection_id, type, image_url, purchase_link, description]
     );
 
@@ -135,7 +138,6 @@ app.post("/collections/:collection_id/filaments", async (req, res) => {
 });
 
 
-// Start the Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
