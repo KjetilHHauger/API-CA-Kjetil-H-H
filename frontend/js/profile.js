@@ -9,14 +9,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const userId = user.user_id;
   document.getElementById("username").textContent = user.username;
+  document.getElementById("userAvatar").src = user.profile_image || "https://via.placeholder.com/100";
 
-  // Logout 
+  // Logout functionality
   document.getElementById("logoutButton").addEventListener("click", () => {
     localStorage.clear();
     window.location.href = "./login.html";
   });
 
-  // Fetch and display brands
+  // Update avatar functionality
+  document.getElementById("updateAvatarButton").addEventListener("click", async () => {
+    const newAvatarUrl = prompt("Enter the new avatar image URL:");
+    if (!newAvatarUrl) return;
+
+    try {
+      const response = await fetch(`${api}/users/${userId}/avatar`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: newAvatarUrl }),
+      });
+
+      if (response.ok) {
+        document.getElementById("userAvatar").src = newAvatarUrl;
+        alert("Avatar updated successfully!");
+      } else {
+        throw new Error("Failed to update avatar.");
+      }
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+    }
+  });
+
+  // Fetch brands
   try {
     const response = await fetch(`${api}/users/${userId}/brands`);
     const brands = await response.json();
@@ -30,112 +54,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         <h3>${brand.brand_name}</h3>
       `;
 
-      card.addEventListener("click", () => showCollections(brand.brand_id));
+      card.addEventListener("click", () => toggleFileExplorer(brand.brand_id, brand.brand_name));
       brandCards.appendChild(card);
     });
   } catch (error) {
     console.error("Error fetching brands:", error);
   }
 
-  // Show collections
-  async function showCollections(brandId) {
-    try {
-      const response = await fetch(`${api}/brands/${brandId}/collections`);
-      const collections = await response.json();
+  function toggleFileExplorer(brandId, brandName) {
+    const fileExplorer = document.createElement("div");
+    fileExplorer.className = "file-explorer";
 
-      const brandCards = document.getElementById("brandCards");
-      brandCards.innerHTML = ""; 
+    fileExplorer.innerHTML = `
+      <h4>Collections for ${brandName}</h4>
+      <button id="addCollectionButton">Add Collection</button>
+      <div id="collections-${brandId}" class="collections"></div>
+    `;
 
-      collections.forEach((collection) => {
-        const card = document.createElement("div");
-        card.className = "collection-card";
-        card.innerHTML = `<h3>${collection.collection_name}</h3>`;
-        brandCards.appendChild(card);
-      });
+    document.getElementById("brandCards").appendChild(fileExplorer);
 
-      const addCollectionButton = document.createElement("button");
-      addCollectionButton.textContent = "Add Collection";
-      addCollectionButton.addEventListener("click", () => {
-        togglePopup("createCollectionPopup");
-        document
-          .getElementById("createCollectionForm")
-          .setAttribute("data-brand-id", brandId); 
-      });
-      brandCards.appendChild(addCollectionButton);
-    } catch (error) {
-      console.error("Error fetching collections:", error);
-    }
+    document.getElementById("addCollectionButton").addEventListener("click", () => {
+      togglePopup("addCollectionPopup");
+      document.getElementById("addCollectionForm").setAttribute("data-brand-id", brandId);
+    });
   }
 
   function togglePopup(id) {
     document.getElementById(id).classList.toggle("hidden");
   }
 
-  document.getElementById("closeCreateBrandPopup").addEventListener("click", () => {
-    togglePopup("createBrandPopup");
+  document.getElementById("closeAddCollectionPopup").addEventListener("click", () => {
+    togglePopup("addCollectionPopup");
   });
 
-  document.getElementById("closeCreateCollectionPopup").addEventListener("click", () => {
-    togglePopup("createCollectionPopup");
+  document.getElementById("closeAddFilamentPopup").addEventListener("click", () => {
+    togglePopup("addFilamentPopup");
   });
-
-  // Create brand
-  document.getElementById("createBrandButton").addEventListener("click", () => {
-    togglePopup("createBrandPopup");
-  });
-
-  document
-    .getElementById("createBrandForm")
-    .addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const brandName = document.getElementById("brandName").value;
-      const brandImage = document.getElementById("brandImage").value;
-
-      try {
-        const response = await fetch(`${api}/users/${userId}/brands`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ brandTitle: brandName, brandImage }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to create brand.");
-        }
-
-        alert("Brand created successfully!");
-        togglePopup("createBrandPopup");
-        window.location.reload(); 
-      } catch (error) {
-        console.error("Error creating brand:", error);
-      }
-    });
-
-  // Create collection
-  document
-    .getElementById("createCollectionForm")
-    .addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const collectionName = document.getElementById("collectionName").value;
-      const brandId = document
-        .getElementById("createCollectionForm")
-        .getAttribute("data-brand-id");
-
-      try {
-        const response = await fetch(`${api}/brands/${brandId}/collections`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collectionName }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to create collection.");
-        }
-
-        alert("Collection created successfully!");
-        togglePopup("createCollectionPopup");
-        showCollections(brandId);
-      } catch (error) {
-        console.error("Error creating collection:", error);
-      }
-    });
 });
