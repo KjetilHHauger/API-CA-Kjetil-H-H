@@ -7,10 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).send("Server is running and healthy.");
-});
+// Keep-alive mechanism to prevent idle connection timeouts
+setInterval(async () => {
+  try {
+    const [result] = await pool.execute("SELECT 1");
+    console.log("Keep-alive query executed successfully.");
+  } catch (err) {
+    console.error("Keep-alive query failed:", err);
+  }
+}, 120000); // 
 
 // Create a new user
 app.post("/users", async (req, res) => {
