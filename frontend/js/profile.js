@@ -1,135 +1,214 @@
+import express from "express";
+import cors from "cors";
+import pool from "./frontend/js/database.js";
+
 const api = "https://api-ca-kjetil-h-h.onrender.com";
+const app = express();
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) {
-    window.location.href = "./login.html";
-    return;
+app.use(cors());
+app.use(express.json());
+
+// Fetch all users
+app.get("/users", async (req, res) => {
+  try {
+    const [rows] = await pool.execute("SELECT * FROM users");
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
   }
+});
 
-  const userId = user.user_id;
-  document.getElementById("username").textContent = user.username;
+// Login
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required." });
+  }
 
   try {
-    const response = await fetch(`${api}/users/${userId}/brands`);
-    const brands = await response.json();
+    const [rows] = await pool.execute(
+      "SELECT * FROM users WHERE username = ? AND password_hash = ?",
+      [username, password]
+    );
 
-    const brandCards = document.getElementById("brandCards");
-    brands.forEach((brand) => {
-      const card = document.createElement("div");
-      card.className = "brand-card";
-      card.innerHTML = `
-        <img src="${brand.image || "https://via.placeholder.com/150"}" alt="${brand.brand_name}">
-        <h3>${brand.brand_name}</h3>
-      `;
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Invalid username or password." });
+    }
 
-      card.addEventListener("click", () => showCollections(brand.brand_id));
-      brandCards.appendChild(card);
+    const user = rows[0];
+
+    res.json({
+      message: "Login successful!",
+      user_id: user.user_id,
+      username: user.username,
+      email: user.email,
     });
-  } catch (error) {
-    console.error("Error fetching brands:", error);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred during login." });
+  }
+});
+
+// Update profile image
+app.put("/users/:user_id/profile-image", async (req, res) => {
+  const userId = Number(req.params.user_id);
+  const { profileImage } = req.body;
+
+  if (!userId || !profileImage) {
+    return res.status(400).json({ error: "User ID and profile image URL are required." });
   }
 
-  async function showCollections(brandId) {
-    try {
-      const response = await fetch(`${api}/brands/${brandId}/collections`);
-      const collections = await response.json();
+  try {
+    await pool.execute("UPDATE users SET profile_image = ? WHERE user_id = ?", [
+      profileImage,
+      userId,
+    ]);
 
-      const brandCards = document.getElementById("brandCards");
-      brandCards.innerHTML = ""; // Clear current cards
+    res.status(200).json({ message: "Profile image updated successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update profile image." });
+  }
+});
 
-      collections.forEach((collection) => {
-        const card = document.createElement("div");
-        card.className = "brand-card";
-        card.innerHTML = `<h3>${collection.collection_name}</h3>`;
-        card.addEventListener("click", () => showFilaments(collection.collection_id));
-        brandCards.appendChild(card);
-      });
-    } catch (error) {
-      console.error("Error fetching collections:", error);
+// Add a brand for a user
+app.post("/users/:user_id/brands", async (req, res) => {
+  const userId = Number(req.params.user_id);
+  const { brandTitle, brandImage } = req.body;
+
+  if (!userId || !brandTitle) {
+    return res.status(400).json({ error: "User ID and brand title are required." });
+  }
+
+  try {
+    await pool.execute(
+      "INSERT INTO brands (user_id, brand_name, image) VALUES (?, ?, ?)",
+      [userId, brandTitle, brandImage]
+    );
+
+    res.status(201).json({ message: "Brand added successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add brand." });
+  }
+});
+
+// Fetch brands for a user
+app.get("/users/:user_id/brands", async (req, res) => {
+  const userId = Number(req.params.user_id);
+
+  if (!userId) {
+    return res.status(400).json({ error: "Invalid user ID." });
+  }
+
+  try {
+    const [rows] = await pool.execute("SELECT * FROM brands WHERE user_id = ?", [userId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No brands found for this user." });
     }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching brands." });
+  }
+});
+
+// Add a collection to a brand
+app.post("/brands/:brand_id/collections", async (req, res) => {
+  const brandId = Number(req.params.brand_id);
+  const { collectionName } = req.body;
+
+  if (!brandId || !collectionName) {
+    return res.status(400).json({ error: "Brand ID and collection name are required." });
   }
 
-  async function showFilaments(collectionId) {
-    try {
-      const response = await fetch(`${api}/collections/${collectionId}/filaments`);
-      const filaments = await response.json();
+  try {
+    await pool.execute("INSERT INTO collections (brand_id, collection_name) VALUES (?, ?)", [
+      brandId,
+      collectionName,
+    ]);
 
-      const brandCards = document.getElementById("brandCards");
-      brandCards.innerHTML = ""; // Clear current cards
+    res.status(201).json({ message: "Collection added successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add collection." });
+  }
+});
 
-      filaments.forEach((filament) => {
-        const card = document.createElement("div");
-        card.className = "brand-card";
-        card.innerHTML = `
-          <h3>${filament.type}</h3>
-          <p>${filament.color}</p>
-        `;
+// Fetch collections for a brand
+app.get("/brands/:brand_id/collections", async (req, res) => {
+  const brandId = Number(req.params.brand_id);
 
-        card.addEventListener("click", () => showFilamentDetails(filament));
-        brandCards.appendChild(card);
-      });
+  if (!brandId) {
+    return res.status(400).json({ error: "Invalid brand ID." });
+  }
 
-      const addButton = document.createElement("button");
-      addButton.textContent = "Add Filament";
-      addButton.addEventListener("click", () => togglePopup("addFilamentPopup"));
-      brandCards.appendChild(addButton);
-    } catch (error) {
-      console.error("Error fetching filaments:", error);
+  try {
+    const [rows] = await pool.execute("SELECT * FROM collections WHERE brand_id = ?", [brandId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No collections found for this brand." });
     }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching collections." });
+  }
+});
+
+// Fetch filaments for a collection
+app.get("/collections/:collection_id/filaments", async (req, res) => {
+  const collectionId = Number(req.params.collection_id);
+
+  if (!collectionId) {
+    return res.status(400).json({ error: "Invalid collection ID." });
   }
 
-  function showFilamentDetails(filament) {
-    document.getElementById("filamentTitle").textContent = filament.type;
-    document.getElementById("filamentImage").src = filament.image_url || "";
-    document.getElementById("filamentDescription").textContent = `Description: ${filament.description}`;
-    document.getElementById("filamentWeight").textContent = `Weight: ${filament.weight} kg`;
-    document.getElementById("filamentType").textContent = `Type: ${filament.type}`;
-    document.getElementById("filamentColor").textContent = `Color: ${filament.color}`;
-    document.getElementById("filamentLink").href = filament.purchase_link || "#";
+  try {
+    const [rows] = await pool.execute("SELECT * FROM filaments WHERE collection_id = ?", [
+      collectionId,
+    ]);
 
-    togglePopup("filamentDetailsPopup");
-  }
-
-  function togglePopup(id) {
-    document.getElementById(id).classList.toggle("hidden");
-  }
-
-  document.getElementById("closeFilamentDetailsPopup").addEventListener("click", () => {
-    togglePopup("filamentDetailsPopup");
-  });
-
-  document.getElementById("closeAddFilamentPopup").addEventListener("click", () => {
-    togglePopup("addFilamentPopup");
-  });
-
-  document.getElementById("addFilamentForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const type = document.getElementById("filamentType").value;
-    const color = document.getElementById("filamentColor").value;
-    const weight = document.getElementById("filamentWeight").value;
-    const imageUrl = document.getElementById("filamentImage").value;
-    const purchaseLink = document.getElementById("filamentLink").value;
-    const description = document.getElementById("filamentDescription").value;
-
-    try {
-      const response = await fetch(`${api}/filaments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ type, color, weight, imageUrl, purchaseLink, description }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add filament.");
-      }
-
-      alert("Filament added successfully!");
-      togglePopup("addFilamentPopup");
-    } catch (error) {
-      console.error("Error adding filament:", error);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No filaments found for this collection." });
     }
-  });
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching filaments." });
+  }
+});
+
+// Add a filament to a collection
+app.post("/filaments", async (req, res) => {
+  const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
+
+  if (!collectionId || !type) {
+    return res.status(400).json({ error: "Collection ID and type are required." });
+  }
+
+  try {
+    await pool.execute(
+      `INSERT INTO filaments (collection_id, type, color, weight, image_url, purchase_link, description) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [collectionId, type, color, weight, imageUrl, purchaseLink, description]
+    );
+
+    res.status(201).json({ message: "Filament added successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add filament." });
+  }
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

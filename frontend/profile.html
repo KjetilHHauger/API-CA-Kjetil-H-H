@@ -4,60 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile</title>
-  <link rel="stylesheet" href="./css/style.css">
-  <script src="./js/profile.js" type="module" defer></script>
+  <script src="./profile.js" type="module" defer></script>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <header class="profile-header">
-    <img id="profileImage" src="" alt="Profile Image" class="profile-image">
-    <h1 id="username">Username</h1>
+  <header>
+    <h1 id="username"></h1>
+    <button id="logoutButton">Logout</button>
   </header>
-
-  <section id="brands" class="brands-section">
-    <h2>Your Brands</h2>
-    <div id="brandCards" class="brand-cards">
-    </div>
-  </section>
-
-  <div id="filamentDetailsPopup" class="popup hidden">
-    <div class="popup-content">
-      <button class="close-popup" id="closeFilamentDetailsPopup">✖</button>
-      <h2 id="filamentTitle">Filament Title</h2>
-      <img id="filamentImage" src="" alt="Filament Image">
-      <p id="filamentDescription">Description: </p>
-      <p id="filamentWeight">Weight: </p>
-      <p id="filamentType">Type: </p>
-      <p id="filamentColor">Color: </p>
-      <a id="filamentLink" href="#" target="_blank">Purchase Link</a>
-    </div>
-  </div>
-
-  <div id="addFilamentPopup" class="popup hidden">
-    <div class="popup-content">
-      <button class="close-popup" id="closeAddFilamentPopup">✖</button>
-      <h2>Add Filament</h2>
-      <form id="addFilamentForm">
-        <label for="filamentType">Type:</label>
-        <input type="text" id="filamentType" required>
-
-        <label for="filamentColor">Color:</label>
-        <input type="text" id="filamentColor">
-
-        <label for="filamentWeight">Weight (kg):</label>
-        <input type="number" step="0.01" id="filamentWeight">
-
-        <label for="filamentImage">Image URL:</label>
-        <input type="url" id="filamentImage">
-
-        <label for="filamentLink">Purchase Link:</label>
-        <input type="url" id="filamentLink">
-
-        <label for="filamentDescription">Description:</label>
-        <textarea id="filamentDescription"></textarea>
-
-        <button type="submit">Add Filament</button>
-      </form>
-    </div>
-  </div>
+  <section id="brandCards"></section>
 </body>
 </html>
