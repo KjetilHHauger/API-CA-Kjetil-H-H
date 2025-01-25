@@ -7,31 +7,94 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).send("Server is running and healthy.");
 });
 
-// Keep-alive mechanism
-setInterval(async () => {
-  try {
-    const [result] = await pool.execute("SELECT 1");
-    console.log("Keep-alive query executed successfully.");
-  } catch (err) {
-    console.error("Keep-alive query failed:", err);
-  }
-}, 30000); 
+// Create a new user
+app.post("/users", async (req, res) => {
+  const { username, email, password } = req.body;
 
-app.get("/users", async (req, res) => {
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "Username, email, and password are required." });
+  }
+
   try {
-    const [rows] = await pool.execute("SELECT * FROM users");
-    res.json(rows);
+    const [result] = await pool.execute(
+      "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+      [username, email, password]
+    );
+
+    res.status(201).json({ message: "User created successfully!", user_id: result.insertId });
   } catch (err) {
-    console.error("Error fetching users:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Error creating user:", err);
+    res.status(500).json({ error: "Failed to create user." });
   }
 });
 
-// Login 
+// Update user avatar
+app.put("/users/:user_id/avatar", async (req, res) => {
+  const userId = Number(req.params.user_id);
+  const { avatarUrl } = req.body;
+
+  if (!avatarUrl) {
+    return res.status(400).json({ error: "Avatar URL is required." });
+  }
+
+  try {
+    await pool.execute("UPDATE users SET avatar_image = ? WHERE user_id = ?", [avatarUrl, userId]);
+
+    res.status(200).json({ message: "User avatar updated successfully!" });
+  } catch (err) {
+    console.error("Error updating avatar:", err);
+    res.status(500).json({ error: "Failed to update avatar." });
+  }
+});
+
+// Delete brand
+app.delete("/brands/:brand_id", async (req, res) => {
+  const brandId = Number(req.params.brand_id);
+
+  try {
+    await pool.execute("DELETE FROM brands WHERE brand_id = ?", [brandId]);
+
+    res.status(200).json({ message: "Brand deleted successfully!" });
+  } catch (err) {
+    console.error("Error deleting brand:", err);
+    res.status(500).json({ error: "Failed to delete brand." });
+  }
+});
+
+// Delete collection
+app.delete("/collections/:collection_id", async (req, res) => {
+  const collectionId = Number(req.params.collection_id);
+
+  try {
+    await pool.execute("DELETE FROM collections WHERE collection_id = ?", [collectionId]);
+
+    res.status(200).json({ message: "Collection deleted successfully!" });
+  } catch (err) {
+    console.error("Error deleting collection:", err);
+    res.status(500).json({ error: "Failed to delete collection." });
+  }
+});
+
+// Delete filament
+app.delete("/filaments/:filament_id", async (req, res) => {
+  const filamentId = Number(req.params.filament_id);
+
+  try {
+    await pool.execute("DELETE FROM filaments WHERE filament_id = ?", [filamentId]);
+
+    res.status(200).json({ message: "Filament deleted successfully!" });
+  } catch (err) {
+    console.error("Error deleting filament:", err);
+    res.status(500).json({ error: "Failed to delete filament." });
+  }
+});
+
+// Login route
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -56,6 +119,7 @@ app.post("/login", async (req, res) => {
       user_id: user.user_id,
       username: user.username,
       email: user.email,
+      avatar_image: user.avatar_image || null,
     });
   } catch (err) {
     console.error("Error during login:", err);
@@ -63,36 +127,24 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Get brands
+// Get brands specific user
 app.get("/users/:user_id/brands", async (req, res) => {
   const userId = Number(req.params.user_id);
-
-  if (!userId) {
-    return res.status(400).json({ error: "Invalid user ID." });
-  }
 
   try {
     const [rows] = await pool.execute("SELECT * FROM brands WHERE user_id = ?", [userId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No brands found for this user." });
-    }
-
     res.json(rows);
   } catch (err) {
     console.error("Error fetching brands:", err);
-    res.status(500).json({ error: "An error occurred while fetching brands." });
+    res.status(500).json({ error: "Failed to fetch brands." });
   }
 });
 
-// Add brand
+// Add a brand user
 app.post("/users/:user_id/brands", async (req, res) => {
   const userId = Number(req.params.user_id);
   const { brandTitle, brandImage } = req.body;
-
-  if (!userId || !brandTitle) {
-    return res.status(400).json({ error: "User ID and brand title are required." });
-  }
 
   try {
     await pool.execute(
@@ -100,43 +152,31 @@ app.post("/users/:user_id/brands", async (req, res) => {
       [userId, brandTitle, brandImage]
     );
 
-    res.status(201).json({ message: "Brand added successfully!" });
+    res.status(201).json({ message: "Brand created successfully!" });
   } catch (err) {
-    console.error("Error adding brand:", err);
-    res.status(500).json({ error: "Failed to add brand." });
+    console.error("Error creating brand:", err);
+    res.status(500).json({ error: "Failed to create brand." });
   }
 });
 
-// Get collections
+// Get collections for brand
 app.get("/brands/:brand_id/collections", async (req, res) => {
   const brandId = Number(req.params.brand_id);
-
-  if (!brandId) {
-    return res.status(400).json({ error: "Invalid brand ID." });
-  }
 
   try {
     const [rows] = await pool.execute("SELECT * FROM collections WHERE brand_id = ?", [brandId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No collections found for this brand." });
-    }
-
     res.json(rows);
   } catch (err) {
     console.error("Error fetching collections:", err);
-    res.status(500).json({ error: "An error occurred while fetching collections." });
+    res.status(500).json({ error: "Failed to fetch collections." });
   }
 });
 
-// Add collection 
+// Add collection to brand
 app.post("/brands/:brand_id/collections", async (req, res) => {
   const brandId = Number(req.params.brand_id);
   const { collectionName } = req.body;
-
-  if (!brandId || !collectionName) {
-    return res.status(400).json({ error: "Brand ID and collection name are required." });
-  }
 
   try {
     await pool.execute("INSERT INTO collections (brand_id, collection_name) VALUES (?, ?)", [
@@ -144,10 +184,10 @@ app.post("/brands/:brand_id/collections", async (req, res) => {
       collectionName,
     ]);
 
-    res.status(201).json({ message: "Collection added successfully!" });
+    res.status(201).json({ message: "Collection created successfully!" });
   } catch (err) {
-    console.error("Error adding collection:", err);
-    res.status(500).json({ error: "Failed to add collection." });
+    console.error("Error creating collection:", err);
+    res.status(500).json({ error: "Failed to create collection." });
   }
 });
 
@@ -155,33 +195,21 @@ app.post("/brands/:brand_id/collections", async (req, res) => {
 app.get("/collections/:collection_id/filaments", async (req, res) => {
   const collectionId = Number(req.params.collection_id);
 
-  if (!collectionId) {
-    return res.status(400).json({ error: "Invalid collection ID." });
-  }
-
   try {
     const [rows] = await pool.execute("SELECT * FROM filaments WHERE collection_id = ?", [
       collectionId,
     ]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No filaments found for this collection." });
-    }
-
     res.json(rows);
   } catch (err) {
     console.error("Error fetching filaments:", err);
-    res.status(500).json({ error: "An error occurred while fetching filaments." });
+    res.status(500).json({ error: "Failed to fetch filaments." });
   }
 });
 
-// Add filament
+// Add filament to collection
 app.post("/filaments", async (req, res) => {
   const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
-
-  if (!collectionId || !type) {
-    return res.status(400).json({ error: "Collection ID and Type are required." });
-  }
 
   try {
     await pool.execute(
@@ -190,10 +218,10 @@ app.post("/filaments", async (req, res) => {
       [collectionId, type, color, weight, imageUrl, purchaseLink, description]
     );
 
-    res.status(201).json({ message: "Filament added successfully!" });
+    res.status(201).json({ message: "Filament created successfully!" });
   } catch (err) {
-    console.error("Error adding filament:", err);
-    res.status(500).json({ error: "Failed to add filament." });
+    console.error("Error creating filament:", err);
+    res.status(500).json({ error: "Failed to create filament." });
   }
 });
 
