@@ -116,6 +116,28 @@ app.get("/users/:user_id/brands", async (req, res) => {
   }
 });
 
+// Add a collection to brand
+app.post("/brands/:brand_id/collections", async (req, res) => {
+  const brandId = Number(req.params.brand_id);
+  const { collectionName } = req.body;
+
+  if (!brandId || !collectionName) {
+    return res.status(400).json({ error: "Brand ID and collection name are required." });
+  }
+
+  try {
+    await pool.execute("INSERT INTO collections (brand_id, collection_name) VALUES (?, ?)", [
+      brandId,
+      collectionName,
+    ]);
+
+    res.status(201).json({ message: "Collection added successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add collection." });
+  }
+});
+
 // Fetch collections for brand
 app.get("/brands/:brand_id/collections", async (req, res) => {
   const brandId = Number(req.params.brand_id);
@@ -138,7 +160,31 @@ app.get("/brands/:brand_id/collections", async (req, res) => {
   }
 });
 
-// Add filament
+// Fetch filaments for collection
+app.get("/collections/:collection_id/filaments", async (req, res) => {
+  const collectionId = Number(req.params.collection_id);
+
+  if (!collectionId) {
+    return res.status(400).json({ error: "Invalid collection ID." });
+  }
+
+  try {
+    const [rows] = await pool.execute("SELECT * FROM filaments WHERE collection_id = ?", [
+      collectionId,
+    ]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No filaments found for this collection." });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "An error occurred while fetching filaments." });
+  }
+});
+
+// Add a filament to collection
 app.post("/filaments", async (req, res) => {
   const { collectionId, type, color, weight, imageUrl, purchaseLink, description } = req.body;
 
