@@ -15,7 +15,7 @@ setInterval(async () => {
   } catch (err) {
     console.error("Keep-alive query failed:", err);
   }
-}, 120000); // 2 minutes interval
+}, 120000); 
 
 // Create a new user
 app.post("/users", async (req, res) => {
@@ -193,13 +193,13 @@ app.put("/brands/:brand_id", async (req, res) => {
       "UPDATE brands SET brand_name = ?, image = ? WHERE brand_id = ?",
       [brandTitle, brandImage || null, brandId]
     );
-
     res.status(200).json({ message: "Brand updated successfully!" });
   } catch (err) {
     console.error("Error updating brand:", err);
     res.status(500).json({ error: "Failed to update brand." });
   }
 });
+
 
 // Get collections for brand
 app.get("/brands/:brand_id/collections", async (req, res) => {
@@ -246,9 +246,7 @@ app.put("/collections/:collection_id", async (req, res) => {
   const { collectionName } = req.body;
 
   if (!collectionName) {
-    return res
-      .status(400)
-      .json({ error: "Collection name is required." });
+    return res.status(400).json({ error: "Collection name is required." });
   }
 
   try {
@@ -256,13 +254,13 @@ app.put("/collections/:collection_id", async (req, res) => {
       "UPDATE collections SET collection_name = ? WHERE collection_id = ?",
       [collectionName, collectionId]
     );
-
     res.status(200).json({ message: "Collection updated successfully!" });
   } catch (err) {
     console.error("Error updating collection:", err);
     res.status(500).json({ error: "Failed to update collection." });
   }
 });
+
 
 // Get filaments
 app.get("/collections/:collection_id/filaments", async (req, res) => {
@@ -324,34 +322,26 @@ app.post("/filaments", async (req, res) => {
 // Update filament
 app.put("/filaments/:filament_id", async (req, res) => {
   const filamentId = Number(req.params.filament_id);
-  const { type, color, weight, imageUrl, purchaseLink, description } = req.body;
+  const { type, color, weight, price, imageUrl, purchaseLink, description } = req.body;
 
-  if (!type) {
-    return res.status(400).json({ error: "Filament type is required." });
+  if (!type || !weight || !price) {
+    return res.status(400).json({ error: "Type, Weight, and Price are required." });
   }
 
   try {
     await pool.execute(
       `UPDATE filaments 
-       SET type = ?, color = ?, weight = ?, image_url = ?, purchase_link = ?, description = ? 
+       SET type = ?, color = ?, weight = ?, price = ?, image_url = ?, purchase_link = ?, description = ? 
        WHERE filament_id = ?`,
-      [
-        type,
-        color || null,
-        weight || null,
-        imageUrl || null,
-        purchaseLink || null,
-        description || null,
-        filamentId,
-      ]
+      [type, color || null, weight, price, imageUrl || null, purchaseLink || null, description || null, filamentId]
     );
-
     res.status(200).json({ message: "Filament updated successfully!" });
-  } catch (error) {
-    console.error("Error updating filament:", error);
+  } catch (err) {
+    console.error("Error updating filament:", err);
     res.status(500).json({ error: "Failed to update filament." });
   }
 });
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
