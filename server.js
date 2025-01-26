@@ -324,23 +324,55 @@ app.put("/filaments/:filament_id", async (req, res) => {
   const filamentId = Number(req.params.filament_id);
   const { type, color, weight, price, imageUrl, purchaseLink, description } = req.body;
 
-  if (!type || !weight || !price) {
-    return res.status(400).json({ error: "Type, Weight, and Price are required." });
+  const updates = [];
+  const values = [];
+
+  if (type !== undefined) {
+    updates.push('type = ?');
+    values.push(type);
+  }
+  if (color !== undefined) {
+    updates.push('color = ?');
+    values.push(color);
+  }
+  if (weight !== undefined) {
+    updates.push('weight = ?');
+    values.push(weight);
+  }
+  if (price !== undefined) {
+    updates.push('price = ?');
+    values.push(price);
+  }
+  if (imageUrl !== undefined) {
+    updates.push('image_url = ?');
+    values.push(imageUrl);
+  }
+  if (purchaseLink !== undefined) {
+    updates.push('purchase_link = ?');
+    values.push(purchaseLink);
+  }
+  if (description !== undefined) {
+    updates.push('description = ?');
+    values.push(description);
   }
 
+  if (updates.length === 0) {
+    return res.status(400).json({ error: "No fields to update." });
+  }
+
+  values.push(filamentId);
+
+  const sql = `UPDATE filaments SET ${updates.join(', ')} WHERE filament_id = ?`;
+
   try {
-    await pool.execute(
-      `UPDATE filaments 
-       SET type = ?, color = ?, weight = ?, price = ?, image_url = ?, purchase_link = ?, description = ? 
-       WHERE filament_id = ?`,
-      [type, color || null, weight, price, imageUrl || null, purchaseLink || null, description || null, filamentId]
-    );
+    await pool.execute(sql, values);
     res.status(200).json({ message: "Filament updated successfully!" });
-  } catch (err) {
-    console.error("Error updating filament:", err);
+  } catch (error) {
+    console.error("Error updating filament:", error);
     res.status(500).json({ error: "Failed to update filament." });
   }
 });
+
 
 
 // Start the server
