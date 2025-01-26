@@ -279,6 +279,28 @@ app.get("/collections/:collection_id/filaments", async (req, res) => {
   }
 });
 
+// Get a single filament by ID
+app.get("/filaments/:filament_id", async (req, res) => {
+  const filamentId = Number(req.params.filament_id);
+
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM filaments WHERE filament_id = ?",
+      [filamentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Filament not found." });
+    }
+
+    res.json(rows[0]); 
+  } catch (err) {
+    console.error("Error fetching filament:", err);
+    res.status(500).json({ error: "Failed to fetch filament." });
+  }
+});
+
+
 app.post("/filaments", async (req, res) => {
   const {
     collectionId,
