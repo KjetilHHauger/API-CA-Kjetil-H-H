@@ -279,7 +279,6 @@ app.get("/collections/:collection_id/filaments", async (req, res) => {
   }
 });
 
-// Add filament to collection
 app.post("/filaments", async (req, res) => {
   const {
     collectionId,
@@ -291,10 +290,10 @@ app.post("/filaments", async (req, res) => {
     description,
   } = req.body;
 
-  if (!collectionId || !type) {
+  if (!collectionId || !color) {
     return res
       .status(400)
-      .json({ error: "Collection ID and Type are required." });
+      .json({ error: "Collection ID and Color are required." });
   }
 
   try {
@@ -303,7 +302,7 @@ app.post("/filaments", async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         collectionId,
-        type,
+        type || null,
         color || null,
         weight || null,
         imageUrl || null,
@@ -318,6 +317,7 @@ app.post("/filaments", async (req, res) => {
     res.status(500).json({ error: "Failed to create filament." });
   }
 });
+
 
 // Update filament
 app.put("/filaments/:filament_id", async (req, res) => {
