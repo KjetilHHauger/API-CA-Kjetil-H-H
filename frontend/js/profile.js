@@ -52,7 +52,7 @@ async function loadBrands(userId) {
         `;
 
       brandItem.addEventListener("click", () =>
-        loadCollections(brand.brand_id)
+        loadTypes(brand.brand_id)
       );
 
       brandItem.querySelector(".edit-brand").addEventListener("click", (e) => {
@@ -130,49 +130,111 @@ async function deleteBrand(brandId, userId) {
   }
 }
 
-async function loadCollections(brandId) {
-  try {
-    const response = await fetch(`${api}/brands/${brandId}/collections`);
-    const collections = await response.json();
-    const container = document.getElementById("collectionsContainer");
-
-    container.innerHTML = "";
-
-    collections.forEach((collection) => {
-      const collectionItem = document.createElement("div");
-      collectionItem.className = "item";
-
-      collectionItem.innerHTML = `
-        <span>${collection.collection_name}</span>
-        <div class="actions">
-          <button class="edit-collection" data-id="${collection.collection_id}" data-name="${collection.collection_name}">Edit</button>
-          <button class="delete-collection" data-id="${collection.collection_id}">Delete</button>
-        </div>
-      `;
-
-      container.appendChild(collectionItem);
-
-      const filamentContainer = document.createElement("div");
-      filamentContainer.id = `filaments-${collection.collection_id}`;
-      filamentContainer.style.display = "none";
-      container.appendChild(filamentContainer);
-
-      collectionItem.addEventListener("click", () =>
-        toggleFilaments(collection.collection_id)
-      );
-
-      loadFilaments(collection.collection_id);
-    });
-
-    const addCollectionButton = document.createElement("button");
-    addCollectionButton.textContent = "+ Add Collection";
-    addCollectionButton.onclick = () => addCollection(brandId);
-    container.appendChild(addCollectionButton);
-  } catch (error) {
-    console.error("Error loading collections:", error);
+async function loadTypes(brandId) {
+    try {
+      const response = await fetch(`${api}/brands/${brandId}/collections`);
+      const types = await response.json();
+      const container = document.getElementById("collectionsContainer");
+  
+      container.innerHTML = "";
+  
+      types.forEach((type) => {
+        const typeItem = document.createElement("div");
+        typeItem.className = "item";
+        typeItem.setAttribute("data-brand-id", brandId);
+  
+        typeItem.innerHTML = `
+          <span>${type.collection_name}</span>
+          <div class="actions">
+            <button class="edit-type" data-id="${type.collection_id}" data-name="${type.collection_name}">Edit</button>
+            <button class="delete-type" data-id="${type.collection_id}">Delete</button>
+          </div>
+        `;
+  
+        typeItem.addEventListener("click", () =>
+          toggleFilaments(type.collection_id)
+        );
+  
+        typeItem.querySelector(".edit-type").addEventListener("click", (e) => {
+          e.stopPropagation();
+          editType(type.collection_id, type.collection_name);
+        });
+  
+        typeItem
+          .querySelector(".delete-type")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            deleteType(type.collection_id, brandId);
+          });
+  
+        container.appendChild(typeItem);
+  
+        const filamentContainer = document.createElement("div");
+        filamentContainer.id = `filaments-${type.collection_id}`;
+        filamentContainer.style.display = "none";
+        container.appendChild(filamentContainer);
+  
+        loadFilaments(type.collection_id);
+      });
+  
+      const addTypeButton = document.createElement("button");
+      addTypeButton.textContent = "+ Add Type";
+      addTypeButton.onclick = () => addCollection(brandId);
+      container.appendChild(addTypeButton);
+    } catch (error) {
+      console.error("Error loading types:", error);
+    }
   }
-}
-
+  
+  
+  async function editType(typeId, currentName) {
+    const newTypeName = prompt("Enter the new name for the type:", currentName);
+  
+    if (!newTypeName) {
+      alert("Type name cannot be empty.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${api}/collections/${typeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collectionName: newTypeName }),
+      });
+  
+      if (response.ok) {
+        alert("Type updated successfully!");
+        const brandId = document.querySelector(".item").getAttribute("data-brand-id");
+        loadTypes(brandId); // Reload types
+      } else {
+        const error = await response.json();
+        alert(`Error updating type: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error updating type:", error);
+    }
+  }
+  
+  async function deleteType(typeId, brandId) {
+    if (!confirm("Are you sure you want to delete this type?")) return;
+  
+    try {
+      const response = await fetch(`${api}/collections/${typeId}`, {
+        method: "DELETE",
+      });
+  
+      if (response.ok) {
+        alert("Type deleted successfully!");
+        loadTypes(brandId); // Reload types
+      } else {
+        const error = await response.json();
+        alert(`Error deleting type: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error deleting type:", error);
+    }
+  }
+  
 function toggleFilaments(collectionId) {
   const filamentContainer = document.getElementById(
     `filaments-${collectionId}`
@@ -264,119 +326,26 @@ function closePopup() {
   }
 }
 
-async function editFilament(filamentId) {
-  try {
-    const response = await fetch(`${api}/filaments/${filamentId}`);
-    if (!response.ok) {
-      alert("Failed to fetch filament details.");
-      return;
-    }
-    const filament = await response.json();
-
-    const color = prompt(
-      "Enter the new color for the filament:",
-      filament.color
-    );
-    const type = prompt(
-      "Enter the new type for the filament (optional):",
-      filament.type
-    );
-    const weight = prompt(
-      "Enter the new weight for the filament in grams (optional):",
-      filament.weight
-    );
-    const price = prompt(
-      "Enter the new price for the filament (optional):",
-      filament.price
-    );
-    const purchaseLink = prompt(
-      "Enter the new purchase link for the filament (optional):",
-      filament.purchase_link
-    );
-    const description = prompt(
-      "Enter the new description for the filament (optional):",
-      filament.description
-    );
-
-    const updatedData = {
-      color: color || filament.color,
-      type: type || filament.type,
-      weight: weight || filament.weight,
-      price: price || filament.price,
-      purchaseLink: purchaseLink || filament.purchase_link,
-      description: description || filament.description,
-    };
-
-    const updateResponse = await fetch(`${api}/filaments/${filamentId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedData),
-    });
-
-    if (updateResponse.ok) {
-      alert("Filament updated successfully!");
-      closePopup();
-      const collectionId = document
-        .querySelector(".popup")
-        .getAttribute("data-collection-id");
-      loadFilaments(collectionId);
-    } else {
-      const error = await updateResponse.json();
-      alert(`Error updating filament: ${error.error}`);
-    }
-  } catch (error) {
-    console.error("Error updating filament:", error);
-  }
-}
-
-async function deleteFilament(filamentId) {
-  if (!confirm("Are you sure you want to delete this filament?")) return;
+async function addCollection(brandId) {
+  const collectionName = prompt("Enter the name of the new type:");
+  if (!collectionName) return;
 
   try {
-    const popup = document.querySelector(".popup");
-    const collectionId = popup
-      ? popup.getAttribute("data-collection-id")
-      : null;
-
-    const response = await fetch(`${api}/filaments/${filamentId}`, {
-      method: "DELETE",
-    });
-
-    if (response.ok) {
-      alert("Filament deleted successfully!");
-      closePopup();
-      if (collectionId) {
-        loadFilaments(collectionId);
-      }
-    } else {
-      const error = await response.json();
-      alert(`Error deleting filament: ${error.error}`);
-    }
-  } catch (error) {
-    console.error("Error deleting filament:", error);
-  }
-}
-
-async function addBrand(userId) {
-  const brandName = prompt("Enter the name of the new brand:");
-  if (!brandName) return;
-
-  try {
-    const response = await fetch(`${api}/users/${userId}/brands`, {
+    const response = await fetch(`${api}/brands/${brandId}/collections`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brandTitle: brandName }),
+      body: JSON.stringify({ collectionName }),
     });
 
     if (response.ok) {
-      alert("Brand added successfully!");
-      loadBrands(userId);
+      alert("Type added successfully!");
+      loadTypes(brandId);
     } else {
       const error = await response.json();
-      alert(`Error adding brand: ${error.error}`);
+      alert(`Error adding type: ${error.error}`);
     }
   } catch (error) {
-    console.error("Error adding brand:", error);
+    console.error("Error adding type:", error);
   }
 }
 
