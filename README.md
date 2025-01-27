@@ -51,6 +51,7 @@ The Filament Management System is a full-stack application designed to help user
 ### Deployment
 
 - Hosted on [Render](https://render.com).
+- Frontend deployed on [Netlify](https://khh-api.netlify.app/).
 
 ---
 
@@ -103,7 +104,7 @@ The Filament Management System is a full-stack application designed to help user
 
 6. Open the frontend:
 
-   - Navigate to `http://localhost:3000` in your browser.
+   - Navigate to [https://khh-api.netlify.app/](https://khh-api.netlify.app/) in your browser.
 
 ---
 
@@ -146,12 +147,19 @@ The Filament Management System is a full-stack application designed to help user
 
 ---
 
-## Future Enhancements
+## Possible future Enhancements
 
 - Add search and filter functionality.
 - Improve user authentication with JWT.
 - Add support for uploading images directly instead of URLs.
 - Enhance UI/UX with animations and tooltips.
+
+---
+
+## Deployment Links
+
+- **API Renderer**: [https://api-ca-kjetil-h-h.onrender.com](https://api-ca-kjetil-h-h.onrender.com)
+- **Frontend Website**: [https://khh-api.netlify.app/](https://khh-api.netlify.app/)
 
 ---
 
